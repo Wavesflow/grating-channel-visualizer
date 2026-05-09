@@ -1553,9 +1553,15 @@
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-wrap justify-end">
-                <span className="chip"><TeX tex={"\\lambda"} />&nbsp;{lambda} nm</span>
-                <span className="chip"><TeX tex={"\\Lambda"} />&nbsp;{period} nm</span>
-                <span className="chip"><TeX tex={"\\lambda/\\Lambda"} />&nbsp;{fmt(derived.ratio, 3)}</span>
+                <span className="chip" style={{minWidth:122, justifyContent:'center'}}>
+                  <TeX tex={"\\lambda"} />&nbsp;{fmt(lambda, 3)} nm
+                </span>
+                <span className="chip" style={{minWidth:132, justifyContent:'center'}}>
+                  <TeX tex={"\\Lambda"} />&nbsp;{fmt(period, 3)} nm
+                </span>
+                <span className="chip" style={{minWidth:108, justifyContent:'center'}}>
+                  <TeX tex={"\\lambda/\\Lambda"} />&nbsp;{fmt(derived.ratio, 3)}
+                </span>
                 <span className="chip on">{nOpenT} trans</span>
                 <span className="chip refl">{nOpenR} refl</span>
                 {nTIR>0 && <span className="chip tir">{nTIR} TIR</span>}
