@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local server / preview state
+.claude/
+node_modules/
+
+# Build output (none expected — this is a no-build project)
+dist/
+build/
+
+# Logs
+*.log

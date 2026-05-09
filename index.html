@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grating Channel Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <style>
+    :root, html[data-theme="dark"] {
+      --bg: #07080B;
+      --surface: #0F1115;
+      --surface-2: #14171D;
+      --border: rgba(255,255,255,0.06);
+      --border-strong: rgba(255,255,255,0.14);
+      --text: #E7E9EE;
+      --text-dim: #8A8F99;
+      --text-faint: #5A5F69;
+      --accent: #6EA8FE;
+      --accent-2: #B58CF7;
+      --warn: #F5A524;
+      --bad: #F26D6D;
+      --good: #2DD4A4;
+      --trans: #4FA3FF;     /* Nature-style blue (transmission) */
+      --trans-deep: #2563EB;
+      --refl:  #4ADE80;     /* Nature-style green (reflection) */
+      --refl-deep: #16A34A;
+      --air-fill-a: #10141B;
+      --air-fill-b: #0B0E13;
+      --glass-fill-a: #0E1622;
+      --glass-fill-b: #0A1320;
+      --grid-line: rgba(255,255,255,0.10);
+      --normal-line: rgba(255,255,255,0.10);
+      --grating-line: rgba(255,255,255,0.55);
+      --grating-tick: rgba(255,255,255,0.22);
+      --legend-bg: rgba(0,0,0,0.42);
+      --row-target-bg: rgba(79,163,255,0.07);
+      --hover-bg: rgba(255,255,255,0.025);
+      --circ-air-stop: rgba(79,163,255,0.06);
+      --circ-glass-stop: rgba(181,140,247,0.05);
+      --air-label: #6EA8FE;
+      --glass-label: #B58CF7;
+      --pm-line: rgba(255,255,255,0.18);
+    }
+    html[data-theme="light"] {
+      --bg: #F7F8FA;
+      --surface: #FFFFFF;
+      --surface-2: #F1F3F7;
+      --border: rgba(15,23,42,0.08);
+      --border-strong: rgba(15,23,42,0.16);
+      --text: #0F172A;
+      --text-dim: #4B5563;
+      --text-faint: #94A3B8;
+      --accent: #2563EB;
+      --accent-2: #7C3AED;
+      --warn: #D97706;
+      --bad: #DC2626;
+      --good: #059669;
+      --trans: #2563EB;
+      --trans-deep: #1D4ED8;
+      --refl:  #16A34A;
+      --refl-deep: #15803D;
+      --air-fill-a: #F4F7FB;
+      --air-fill-b: #EAF0F7;
+      --glass-fill-a: #E7ECF6;
+      --glass-fill-b: #DCE3F0;
+      --grid-line: rgba(15,23,42,0.12);
+      --normal-line: rgba(15,23,42,0.20);
+      --grating-line: rgba(15,23,42,0.6);
+      --grating-tick: rgba(15,23,42,0.36);
+      --legend-bg: rgba(255,255,255,0.88);
+      --row-target-bg: rgba(37,99,235,0.07);
+      --hover-bg: rgba(15,23,42,0.03);
+      --circ-air-stop: rgba(37,99,235,0.10);
+      --circ-glass-stop: rgba(124,58,237,0.10);
+      --air-label: #2563EB;
+      --glass-label: #7C3AED;
+      --pm-line: rgba(15,23,42,0.22);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      letter-spacing: -0.01em;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      transition: background 0.25s ease, color 0.25s ease;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(ellipse 70% 50% at 20% 0%, color-mix(in srgb, var(--trans) 8%, transparent), transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 100%, color-mix(in srgb, var(--refl) 6%, transparent), transparent 60%);
+    }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; }
+    .surface { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; transition: background 0.25s ease, border-color 0.25s ease; }
+    .surface-2 { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; }
+    .hairline { border-color: var(--border); }
+    .text-dim { color: var(--text-dim); }
+    .text-faint { color: var(--text-faint); }
+    .label-cap { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); font-weight: 500; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 9px; border-radius: 999px;
+      font-size: 11px; font-weight: 500;
+      background: rgba(127,127,127,0.07);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+    .chip.on  { background: color-mix(in srgb, var(--trans) 14%, transparent); color: var(--trans); border-color: color-mix(in srgb, var(--trans) 30%, transparent); }
+    .chip.refl{ background: color-mix(in srgb, var(--refl) 14%, transparent);  color: var(--refl);  border-color: color-mix(in srgb, var(--refl) 30%, transparent); }
+    .chip.off { background: color-mix(in srgb, var(--bad) 8%, transparent);    color: var(--bad);   border-color: color-mix(in srgb, var(--bad) 22%, transparent); }
+    .chip.tir { background: color-mix(in srgb, var(--warn) 12%, transparent);  color: var(--warn); border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
+    .chip .katex { color: inherit; font-size: 0.95em; }
+    /* Range input */
+    input[type=range] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; background: transparent; cursor: pointer; height: 18px;
+    }
+    input[type=range]::-webkit-slider-runnable-track { height: 3px; background: color-mix(in srgb, var(--text) 10%, transparent); border-radius: 999px; }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 14px; height: 14px; margin-top: -5.5px; border-radius: 999px;
+      background: var(--text);
+      border: 2px solid var(--surface-2);
+      box-shadow: 0 0 0 1px var(--border-strong);
+      transition: transform 0.12s ease;
+    }
+    input[type=range]:active::-webkit-slider-thumb { transform: scale(1.15); }
+    input[type=range]::-moz-range-track { height: 3px; background: color-mix(in srgb, var(--text) 10%, transparent); border-radius: 999px; }
+    input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 999px; background: var(--text); border: 2px solid var(--surface-2); }
+    input[type=number] {
+      background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+      border-radius: 6px; padding: 4px 8px; width: 84px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+    input[type=number]:focus { outline: none; border-color: var(--trans); }
+    button.seg {
+      padding: 6px 12px; font-size: 12px; font-weight: 500;
+      background: transparent; color: var(--text-dim);
+      border: 1px solid var(--border); border-radius: 8px;
+      cursor: pointer; transition: all 0.15s ease;
+    }
+    button.seg:hover { color: var(--text); border-color: var(--border-strong); }
+    button.seg.active { background: color-mix(in srgb, var(--trans) 14%, transparent); color: var(--trans); border-color: color-mix(in srgb, var(--trans) 38%, transparent); }
+    /* Stepper buttons for m_target */
+    button.step-btn {
+      width: 30px; height: 30px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      border-radius: 7px;
+      font-size: 14px; font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+    button.step-btn:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); background: var(--surface); }
+    button.step-btn:active:not(:disabled) { transform: scale(0.95); }
+    button.step-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    /* Reference-angle sub-card */
+    .ref-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 12px;
+    }
+    .ref-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      padding: 3px 0;
+      font-size: 12.5px;
+    }
+    .ref-row + .ref-row { border-top: 1px dashed var(--border); }
+    /* Editable inline numeric value inside slider header */
+    .value-input {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      text-align: right;
+      width: 84px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: border-color 0.15s ease, background 0.15s ease;
+      -moz-appearance: textfield;
+    }
+    .value-input::-webkit-outer-spin-button,
+    .value-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .value-input:hover { border-color: var(--border); }
+    .value-input:focus { outline: none; border-color: var(--trans); background: var(--surface-2); }
+    /* Klabel chip used for circle / medium identifiers above SVGs */
+    .klabel-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 10px; }
+    .klabel {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 10px; border-radius: 8px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .klabel .marker { width: 14px; height: 0; border-top-width: 2px; border-top-style: solid; }
+    .klabel .marker.dashed { border-top-style: dashed; }
+    .klabel .katex { font-size: 1em; }
+    /* SVG transitions */
+    .ray, .order-pt, .order-stem, .kvec { transition: all 0.25s cubic-bezier(0.4,0,0.2,1); }
+    .ray-evan { stroke-dasharray: 4 3; opacity: 0.55; }
+    .table-row { transition: background 0.15s ease; }
+    .table-row:hover { background: var(--hover-bg); }
+    .row-target { background: var(--row-target-bg); }
+    /* KaTeX in the dark theme */
+    .katex { color: var(--text); font-size: 1.02em; text-transform: none !important; letter-spacing: normal; }
+    .katex * { text-transform: none !important; }
+    .katex .mord, .katex .mbin, .katex .mrel, .katex .mopen, .katex .mclose, .katex .mpunct { color: var(--text); }
+    .eq-block { padding: 6px 0; }
+    .eq-block + .eq-block { border-top: 1px dashed var(--border); }
+    .theme-toggle {
+      width: 38px; height: 30px; border-radius: 8px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text-dim); cursor: pointer; transition: all 0.18s ease;
+    }
+    .theme-toggle:hover { color: var(--text); border-color: var(--border-strong); }
+    /* Color swatches */
+    .swatch {
+      width: 10px; height: 10px; border-radius: 999px; display: inline-block;
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo, Fragment, useEffect, useRef } = React;
+
+    const PI = Math.PI;
+    const DEG = 180 / PI;
+    const TRANS_C = 'var(--trans)';
+    const REFL_C  = 'var(--refl)';
+    const TIR_C   = 'var(--warn)';
+
+    // ─── KaTeX wrapper ─────────────────────────────────────────────
+    function TeX({ tex, block=false }) {
+      const ref = useRef(null);
+      useEffect(() => {
+        if (!ref.current) return;
+        const render = () => {
+          if (window.katex) {
+            try {
+              window.katex.render(tex, ref.current, { displayMode: block, throwOnError: false, output: 'html' });
+            } catch(e) { ref.current.textContent = tex; }
+          } else { setTimeout(render, 60); }
+        };
+        render();
+      }, [tex, block]);
+      return <span ref={ref} className={block ? 'block' : 'inline'} />;
+    }
+
+    function fmt(x, d=3) {
+      if (!isFinite(x) || x === null || x === undefined) return '—';
+      return Number(x).toFixed(d);
+    }
+
+    // Slight per-m opacity gradient so labels are still distinguishable, but base hue is fixed.
+    function shadeOpacity(m, mMin, mMax) {
+      const span = Math.max(Math.abs(mMin), Math.abs(mMax), 1);
+      const t = Math.abs(m) / span;     // 0 (centre) → 1 (edges)
+      return 1 - 0.42 * t;              // 1.0 → 0.58
+    }
+
+    // ─── Helper: arc + KaTeX-rendered label between two unit vectors ──
+    function ArcLabel({ cx, cy, r, labelR, fromVec, toVec, tex, color, dashed=false, fontSize=11.5 }) {
+      const dot = Math.max(-1, Math.min(1, fromVec.x*toVec.x + fromVec.y*toVec.y));
+      const angleMag = Math.acos(dot);
+      if (angleMag < 0.06) return null;            // ≲ 3.4° — degenerate, skip
+      const p0 = { x: cx + r * fromVec.x, y: cy + r * fromVec.y };
+      const p1 = { x: cx + r * toVec.x,   y: cy + r * toVec.y };
+      const cross = fromVec.x * toVec.y - fromVec.y * toVec.x;
+      const sweep = cross > 0 ? 1 : 0;
+      const midX = (fromVec.x + toVec.x);
+      const midY = (fromVec.y + toVec.y);
+      const midLen = Math.hypot(midX, midY) || 1;
+      const lx = cx + labelR * midX / midLen;
+      const ly = cy + labelR * midY / midLen;
+      const fw = 110, fh = 26;
+      return (
+        <g>
+          <path d={`M ${p0.x} ${p0.y} A ${r} ${r} 0 0 ${sweep} ${p1.x} ${p1.y}`}
+            fill="none" stroke={color} strokeWidth="1.2" strokeOpacity="0.9"
+            strokeDasharray={dashed ? "3 2" : null} />
+          <foreignObject x={lx - fw/2} y={ly - fh/2} width={fw} height={fh}
+            style={{overflow:'visible'}}>
+            <div xmlns="http://www.w3.org/1999/xhtml" style={{
+              color, fontSize: `${fontSize}px`, textAlign: 'center', lineHeight: 1.2,
+              whiteSpace: 'nowrap',
+            }}>
+              <TeX tex={tex} />
+            </div>
+          </foreignObject>
+        </g>
+      );
+    }
+
+    // ─── Helper: KaTeX label rendered at an SVG point (centred) ────
+    function LabelTeX({ x, y, tex, color, fontSize=12.5, weight=600, w=70, h=22 }) {
+      return (
+        <foreignObject x={x - w/2} y={y - h/2} width={w} height={h} style={{overflow:'visible'}}>
+          <div xmlns="http://www.w3.org/1999/xhtml" style={{
+            color, fontSize: `${fontSize}px`, fontWeight: weight,
+            textAlign: 'center', lineHeight: 1.2, whiteSpace: 'nowrap',
+          }}>
+            <TeX tex={tex} />
+          </div>
+        </foreignObject>
+      );
+    }
+
+    // ─── Real-space view ──────────────────────────────────────────
+    function RealSpaceView({ params, derived, hoveredM, onHover, onSelectTarget }) {
+      const W = 640, H = 460;
+      const cx = W / 2, cy = H / 2;
+      const L = 195;
+      const evanLen = 38;
+      const { sideSign, orders, thetaC } = derived;
+      const { thetaI, mMin, mMax, mTarget, nGlass, nAir } = params;
+      const thetaIRad = thetaI * PI / 180;
+      const hoverNoop  = onHover || (() => {});
+      const targetNoop = onSelectTarget || (() => {});
+
+      const tickSpacing = 26;
+      const tickCount = Math.floor(W / tickSpacing) + 2;
+
+      // backwards direction for incident ray (drawn segment lies in input region)
+      const incBack = { x: -Math.sin(thetaIRad), y: -sideSign * Math.cos(thetaIRad) };
+      const incidentEnd = { x: cx + L * incBack.x, y: cy + L * incBack.y };
+
+      const rayEnd = (theta, kind) => {
+        const ySvgSign = (kind === 'reflected') ? -sideSign : +sideSign;
+        return { x: cx + L * Math.sin(theta), y: cy + L * ySvgSign * Math.cos(theta) };
+      };
+
+      const inputIsTop = sideSign === +1;
+      // air is ALWAYS the upper region; substrate ALWAYS the lower region.
+
+      // SVG-y unit vector pointing INTO each medium (used for angle arcs)
+      const ySvgInput  = -sideSign;        // input top → -1 (svg up)
+      const ySvgOutput = +sideSign;        // output bottom → +1 (svg down)
+
+      // Arcs: incident angle and m=0 transmitted angle (skip clutter for other orders)
+      const arcR = 38;
+      const arcLabelR = arcR + 14;
+      const incFrom = { x: 0, y: ySvgInput };
+      const incTo   = { x: -Math.sin(thetaIRad), y: ySvgInput * Math.cos(thetaIRad) };
+
+      const t0 = orders.find(o => o.m === 0);
+      let t0Arc = null;
+      if (t0 && t0.thetaT !== null) {
+        const t0From = { x: 0, y: ySvgOutput };
+        const t0To   = { x: Math.sin(t0.thetaT), y: ySvgOutput * Math.cos(t0.thetaT) };
+        t0Arc = { from: t0From, to: t0To, deg: t0.thetaT * DEG };
+      }
+
+      return (
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block" style={{maxHeight: 460}}>
+          <defs>
+            <linearGradient id="airGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"  stopColor="var(--air-fill-a)" />
+              <stop offset="100%" stopColor="var(--air-fill-b)" />
+            </linearGradient>
+            <linearGradient id="glassGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--glass-fill-a)" />
+              <stop offset="100%" stopColor="var(--glass-fill-b)" />
+            </linearGradient>
+            {/* per-colour markers — currentColor inheritance through SVG <marker>
+                isn't reliable across browsers, so we duplicate by colour. */}
+            {[
+              {id:'rs-arrow-text',  c:'var(--text)',  big:true},
+              {id:'rs-arrow-trans', c:'var(--trans)', big:false},
+              {id:'rs-arrow-refl',  c:'var(--refl)',  big:false},
+              {id:'rs-arrow-tir',   c:'var(--warn)',  big:false},
+            ].map(m => (
+              <marker key={m.id} id={m.id} viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth={m.big ? 6 : 5} markerHeight={m.big ? 6 : 5}
+                orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill={m.c} />
+              </marker>
+            ))}
+          </defs>
+
+          <rect x="0" y="0"  width={W} height={cy}       fill="url(#airGrad)" />
+          <rect x="0" y={cy} width={W} height={H - cy}   fill="url(#glassGrad)" />
+
+          {/* media labels — KaTeX via foreignObject, minimal */}
+          <foreignObject x="14" y="8" width="160" height="22">
+            <div xmlns="http://www.w3.org/1999/xhtml"
+              style={{color:'var(--text-dim)', fontSize:'12.5px', lineHeight:1.2}}>
+              <TeX tex={`n = ${fmt(nAir, 3)}`} />
+            </div>
+          </foreignObject>
+          <foreignObject x="14" y={H-26} width="180" height="22">
+            <div xmlns="http://www.w3.org/1999/xhtml"
+              style={{color:'var(--text-dim)', fontSize:'12.5px', lineHeight:1.2}}>
+              <TeX tex={`n_{\\text{sub}} = ${fmt(nGlass, 3)}`} />
+            </div>
+          </foreignObject>
+
+          {/* normal */}
+          <line x1={cx} y1="0" x2={cx} y2={H} stroke="var(--normal-line)" strokeDasharray="2 4" />
+
+          {/* TIR critical-angle cone in glass — always shown in lower (glass) region */}
+          {(() => {
+            const yGlass = cy + 1;
+            const xL = cx + L * 1.05 * Math.sin(-thetaC);
+            const xR = cx + L * 1.05 * Math.sin(+thetaC);
+            const yT = cy + L * 1.05 * Math.cos(thetaC);
+            return (
+              <g opacity="0.32">
+                <line x1={cx} y1={yGlass} x2={xL} y2={yT} stroke="var(--warn)" strokeDasharray="3 4" />
+                <line x1={cx} y1={yGlass} x2={xR} y2={yT} stroke="var(--warn)" strokeDasharray="3 4" />
+              </g>
+            );
+          })()}
+
+          {/* grating */}
+          <line x1="0" y1={cy} x2={W} y2={cy} stroke="var(--grating-line)" strokeWidth="1.4" />
+          {Array.from({length: tickCount}).map((_, i) => {
+            const x = (i - tickCount/2) * tickSpacing + cx;
+            return <line key={i} x1={x} y1={cy-4} x2={x} y2={cy+4} stroke="var(--grating-tick)" strokeWidth="1.2" />;
+          })}
+
+          {/* incident ray + angle arc */}
+          {(() => {
+            const c = "var(--text)";
+            // Place "INCIDENT" label *past* the start of the ray, perpendicular-ish offset
+            // so it never sits on top of the R+0 / T+0 arrows when θᵢ ≈ 0.
+            const sign = thetaI >= 0 ? +1 : -1;
+            const labelX = incidentEnd.x + sign * 14;
+            const labelY = incidentEnd.y - 4;
+            return (
+              <g style={{color: c}}>
+                <line className="ray" x1={incidentEnd.x} y1={incidentEnd.y} x2={cx} y2={cy}
+                  stroke={c} strokeWidth="2" markerEnd="url(#rs-arrow-text)" />
+                <text x={labelX} y={labelY}
+                  fontSize="11" fontWeight="600" letterSpacing="0.05em"
+                  textAnchor={sign>0 ? "start" : "end"} fill={c} className="mono">
+                  INCIDENT
+                </text>
+              </g>
+            );
+          })()}
+
+          {/* Angle arcs — incident θ_i, and m=0 transmitted θ_{T,0} */}
+          <ArcLabel cx={cx} cy={cy} r={arcR} labelR={arcR + 22}
+            fromVec={incFrom} toVec={incTo}
+            tex={`\\theta_i = ${fmt(thetaI, 1)}^{\\circ}`} color="var(--text)" />
+          {t0Arc && (
+            <ArcLabel cx={cx} cy={cy} r={arcR + 14} labelR={arcR + 14 + 26}
+              fromVec={t0Arc.from} toVec={t0Arc.to}
+              tex={`\\theta_{T,0} = ${fmt(t0Arc.deg, 1)}^{\\circ}`}
+              color={TRANS_C} dashed />
+          )}
+
+          {/* output rays */}
+          {orders.map(o => {
+            const isTarget  = o.m === mTarget;
+            const isHovered = o.m === hoveredM;
+            const baseW = (isTarget || isHovered) ? 2.7 : 1.7;
+            const op = shadeOpacity(o.m, mMin, mMax) *
+              (hoveredM === null || isHovered ? 1 : 0.5);
+
+            // reflected (input medium)
+            let reflEl = null;
+            if (o.thetaR !== null) {
+              const e = rayEnd(o.thetaR, 'reflected');
+              // reflected lives in input medium. If input is glass and |θ|>θc → TIR-guided.
+              const reflInGlass = !inputIsTop;
+              const isTIR = reflInGlass && Math.abs(o.thetaR) > thetaC;
+              // TIR keeps the role colour; the >θ_c geometry conveys the trapping.
+              const stroke = REFL_C;
+              const mEnd = "url(#rs-arrow-refl)";
+              reflEl = (
+                <g key={"r"+o.m} style={{color: stroke}}>
+                  {isTarget && <line x1={cx} y1={cy} x2={e.x} y2={e.y} stroke={stroke} strokeWidth={baseW+5} opacity="0.18" />}
+                  <line className="ray" x1={cx} y1={cy} x2={e.x} y2={e.y}
+                    stroke={stroke} strokeWidth={baseW} strokeOpacity={op}
+                    markerEnd={mEnd} />
+                  {(() => {
+                    const ux = Math.sin(o.thetaR);
+                    const uy = -sideSign * Math.cos(o.thetaR);
+                    const lx = e.x + 16 * ux;
+                    const ly = e.y + 16 * uy;
+                    const sign = o.m >= 0 ? '+' : '';
+                    const tex = `R_{${sign}${o.m}}${isTIR ? '\\;\\text{TIR}' : ''}`;
+                    return (
+                      <LabelTeX x={lx} y={ly} tex={tex} color={stroke}
+                        w={isTIR ? 86 : 56} />
+                    );
+                  })()}
+                </g>
+              );
+            } else {
+              // Evanescent reflected order — no propagating ray in real space.
+              // Existence is conveyed by the k-space view and the order table.
+              reflEl = null;
+            }
+
+            // transmitted (output medium)
+            let transEl = null;
+            if (o.thetaT !== null) {
+              const e = rayEnd(o.thetaT, 'transmitted');
+              const transInGlass = inputIsTop;
+              const isTIR = transInGlass && Math.abs(o.thetaT) > thetaC;
+              // TIR keeps the role colour; the >θ_c geometry conveys the trapping.
+              const stroke = TRANS_C;
+              const mEnd = "url(#rs-arrow-trans)";
+              transEl = (
+                <g key={"t"+o.m} style={{color: stroke}}>
+                  {isTarget && <line x1={cx} y1={cy} x2={e.x} y2={e.y} stroke={stroke} strokeWidth={baseW+5} opacity="0.18" />}
+                  <line className="ray" x1={cx} y1={cy} x2={e.x} y2={e.y}
+                    stroke={stroke} strokeWidth={baseW} strokeOpacity={op}
+                    markerEnd={mEnd} />
+                  {(() => {
+                    const ux = Math.sin(o.thetaT);
+                    const uy = sideSign * Math.cos(o.thetaT);
+                    const lx = e.x + 16 * ux;
+                    const ly = e.y + 16 * uy;
+                    const sign = o.m >= 0 ? '+' : '';
+                    const tex = `T_{${sign}${o.m}}${isTIR ? '\\;\\text{TIR}' : ''}`;
+                    return (
+                      <LabelTeX x={lx} y={ly} tex={tex} color={stroke}
+                        w={isTIR ? 86 : 56} />
+                    );
+                  })()}
+                </g>
+              );
+            } else {
+              // Evanescent transmitted order — same reasoning as above; omit
+              // any drawing in real space.
+              transEl = null;
+            }
+
+            return (
+              <g key={o.m}
+                onMouseEnter={() => hoverNoop(o.m)}
+                onMouseLeave={() => hoverNoop(null)}
+                onClick={() => targetNoop(o.m)}
+                style={{cursor: 'pointer'}}>
+                {reflEl}{transEl}
+              </g>
+            );
+          })}
+
+          {/* legend */}
+          <g transform={`translate(${W-148} 14)`}>
+            <rect x="0" y="0" width="138" height="44" rx="6" fill="var(--legend-bg)" stroke="var(--border)" />
+            <text x="10" y="14" fontSize="9.5" fill="var(--text-dim)" letterSpacing="0.08em" className="mono">LEGEND</text>
+            <line x1="10" y1="26" x2="32" y2="26" stroke={TRANS_C} strokeWidth="2.2" markerEnd="url(#rs-arrow-trans)"/>
+            <text x="40" y="29" fontSize="10.5" fill="var(--text)" className="mono">Transmitted</text>
+            <line x1="10" y1="38" x2="32" y2="38" stroke={REFL_C} strokeWidth="2.2" markerEnd="url(#rs-arrow-refl)"/>
+            <text x="40" y="41" fontSize="10.5" fill="var(--text)" className="mono">Reflected</text>
+          </g>
+        </svg>
+      );
+    }
+
+    // ─── k-space view (proper 2D Ewald construction) ──────────────
+    //
+    // What the picture shows:
+    //   • Air circle (radius n_air·k₀) and glass circle (radius n_glass·k₀), both centred at origin.
+    //   • Phase matching enforces the same kₓ on both sides of the interface, so each diffraction
+    //     order m corresponds to a vertical line at kₓ,m = kₓ,inc + m·G.
+    //   • The k-vector of an order is found by intersecting that vertical line with the medium's
+    //     circle.  Two intersections per circle: +ky (upper, half-plane = AIR side in real space)
+    //     and –ky (lower, half-plane = GLASS side in real space).
+    //   • An order PROPAGATES in a medium only if its kₓ falls inside that medium's circle.
+    //     Outside the circle → ky is imaginary → evanescent (decaying away from the interface).
+    //
+    function KSpaceView({ params, derived, hoveredM, onHover, onSelectTarget,
+                          zoomOverride }) {
+      const W = 660, H = 480;
+      const cx = W/2, cy = H/2;
+      const { sideSign, orders } = derived;
+      const { mMin, mMax, mTarget, nAir, nGlass } = params;
+      const hoverNoop = onHover || (() => {});
+      const targetNoop = onSelectTarget || (() => {});
+
+      // ── adaptive scale: every order in [m_min, m_max] is visible ──
+      const maxKx  = orders.reduce((a, o) => Math.max(a, Math.abs(o.kxNorm)), 0);
+      const autoHalfWx = Math.max(maxKx * 1.08, nGlass * 1.15);
+      const halfWx = (zoomOverride && zoomOverride > 0) ? zoomOverride : autoHalfWx;
+      const halfWy = nGlass * 1.18;                           // y half-extent (units)
+      const sx = (W/2 - 26) / halfWx;
+      const sy = (H/2 - 28) / halfWy;
+      const scale = Math.min(sx, sy);                         // px per (k/k0) unit
+      const rAir = nAir * scale;
+      const rGlass = nGlass * scale;
+
+      // axis ticks — pick spacing so we get 6–10 visible labels
+      const niceStep = (() => {
+        const targetSteps = 8;
+        const raw = halfWx / (targetSteps/2);
+        const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+        const norm = raw / pow;
+        const step = (norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10) * pow;
+        return step;
+      })();
+      const ticks = [];
+      for (let v = -Math.floor(halfWx/niceStep)*niceStep; v <= halfWx+1e-9; v += niceStep) {
+        ticks.push(+v.toFixed(3));
+      }
+
+      // m-label density: skip labels if phase-matching lines are too close.
+      // Always keep m=0, m=mTarget, m=hoveredM, and the extremes m_min, m_max.
+      const orderSpacingPx = scale * derived.ratio;   // px between adjacent m
+      const mStep = orderSpacingPx < 18 ? 4 : orderSpacingPx < 32 ? 2 : 1;
+      const mustShow = new Set([0, mTarget, hoveredM, mMin, mMax].filter(v => v !== null && v !== undefined));
+      const showLabel = (m) => mustShow.has(m) || (m % mStep === 0);
+
+      const inputIsTop = sideSign === +1;
+      // Convention: AIR half-plane = upper (svg y < cy), GLASS half-plane = lower (svg y > cy).
+      const airColorIfRefl   = inputIsTop  ? REFL_C  : TRANS_C; // air upper
+      const glassColorIfRefl = !inputIsTop ? REFL_C  : TRANS_C; // glass lower
+      const airRoleLabel     = inputIsTop  ? 'reflected'  : 'transmitted';
+      const glassRoleLabel   = !inputIsTop ? 'reflected'  : 'transmitted';
+
+      const visibleX = W/2 - 18;
+
+      return (
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block" style={{maxHeight: 480}}>
+          <defs>
+            <radialGradient id="circAir" cx="50%" cy="50%" r="50%">
+              <stop offset="0%"  stopColor="var(--circ-air-stop)" />
+              <stop offset="100%" stopColor="transparent" />
+            </radialGradient>
+            <radialGradient id="circGlass" cx="50%" cy="50%" r="50%">
+              <stop offset="0%"  stopColor="var(--circ-glass-stop)" />
+              <stop offset="100%" stopColor="transparent" />
+            </radialGradient>
+            {/* clip rectangles for the half-plane circles — avoids any
+                ambiguity from SVG sweep-flag conventions. */}
+            <clipPath id="upper-half"><rect x={0} y={0} width={W} height={cy} /></clipPath>
+            <clipPath id="lower-half"><rect x={0} y={cy} width={W} height={H-cy} /></clipPath>
+            {/* per-colour markers (currentColor inheritance unreliable across browsers) */}
+            {[
+              {id:'k-arrow-trans', c:'var(--trans)'},
+              {id:'k-arrow-refl',  c:'var(--refl)'},
+              {id:'k-arrow-tir',   c:'var(--warn)'},
+              {id:'k-arrow-inc',   c:'var(--text)'},
+            ].map(m => (
+              <marker key={m.id} id={m.id} viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="5.4" markerHeight="5.4" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill={m.c} />
+              </marker>
+            ))}
+            {/* TIR glow — soft halo for substrate-guided modes */}
+            <filter id="tir-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2.6" />
+              <feComponentTransfer><feFuncA type="linear" slope="0.55" /></feComponentTransfer>
+              <feMerge>
+                <feMergeNode />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            {/* selected/hovered ring */}
+            <filter id="hover-ring" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" />
+              <feComponentTransfer><feFuncA type="linear" slope="0.45" /></feComponentTransfer>
+              <feMerge>
+                <feMergeNode />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* air / substrate background tinting (upper / lower halves) */}
+          <rect x="0" y="0"  width={W} height={cy} fill="var(--air-fill-a)" opacity="0.4" />
+          <rect x="0" y={cy} width={W} height={H-cy} fill="var(--glass-fill-a)" opacity="0.4" />
+          <line x1="0" y1={cy} x2={W} y2={cy} stroke="var(--grating-line)" strokeWidth="1" opacity="0.5" />
+
+          {/* axes */}
+          <line x1="20" y1={cy} x2={W-20} y2={cy} stroke="var(--grid-line)" />
+          <line x1={cx} y1="20" x2={cx} y2={H-20} stroke="var(--grid-line)" />
+          {ticks.map(v => (
+            <g key={"tk"+v}>
+              <line x1={cx + v*scale} y1={cy-3} x2={cx + v*scale} y2={cy+3} stroke="var(--grating-tick)" />
+              {v !== 0 && (
+                <text x={cx + v*scale} y={cy + 14} fontSize="9.5" textAnchor="middle" fill="var(--text-faint)" className="mono">{v}</text>
+              )}
+            </g>
+          ))}
+          {/* axis labels — placed in corners so they never collide with
+              the row of m-labels at the top of the plot. */}
+          <foreignObject x={W - 70} y={cy + 4} width="60" height="22">
+            <div xmlns="http://www.w3.org/1999/xhtml"
+              style={{color: 'var(--text-dim)', fontSize: '11px', textAlign: 'right', lineHeight: 1.2}}>
+              <TeX tex={"k_x / k_0"} />
+            </div>
+          </foreignObject>
+          <foreignObject x={cx + 6} y={cy - rGlass - 22} width="64" height="22">
+            <div xmlns="http://www.w3.org/1999/xhtml"
+              style={{color: 'var(--text-dim)', fontSize: '11px', lineHeight: 1.2}}>
+              <TeX tex={"k_y / k_0"} />
+            </div>
+          </foreignObject>
+
+          {/* Ewald construction — clipped full circles.
+              Upper half-plane (reflection region):  AIR semicircle, |k| = n_air · k₀.
+              Lower half-plane (transmission region): SUBSTRATE semicircle, |k| = n_sub · k₀.
+              Substrate radius MUST exceed air radius because n_sub > n_air.   */}
+          <circle cx={cx} cy={cy} r={rAir}
+            fill="url(#circAir)" stroke="var(--accent)"
+            strokeOpacity="0.85" strokeWidth="1.6"
+            clipPath="url(#upper-half)" />
+          <circle cx={cx} cy={cy} r={rGlass}
+            fill="url(#circGlass)" stroke="var(--accent-2)"
+            strokeOpacity="0.85" strokeWidth="1.6"
+            clipPath="url(#lower-half)" />
+
+          {/* Small radius reference ticks on the k_y axis so the size
+              relationship n_sub > n_air is visually obvious without
+              cluttering the apex with text labels (the radii are already
+              shown in the chip row above the SVG). */}
+          <line x1={cx-5} y1={cy - rAir}   x2={cx+5} y2={cy - rAir}
+            stroke="var(--accent)"   strokeWidth="1.8" />
+          <line x1={cx-5} y1={cy + rGlass} x2={cx+5} y2={cy + rGlass}
+            stroke="var(--accent-2)" strokeWidth="1.8" />
+          {/* radius value at each tick — placed OUTSIDE the circles
+              (above the air apex / below the substrate apex) so the text
+              never sits on top of the circle stroke or any k-vector. */}
+          <foreignObject x={cx - 80} y={cy - rAir - 24} width="68" height="20"
+            style={{overflow:'visible'}}>
+            <div xmlns="http://www.w3.org/1999/xhtml" style={{
+              color: 'var(--air-label)', fontSize: '10px', lineHeight: 1.2,
+              textAlign: 'right', whiteSpace: 'nowrap',
+            }}>
+              <TeX tex={`${fmt(nAir,2)}\\,k_0`} />
+            </div>
+          </foreignObject>
+          <foreignObject x={cx - 80} y={cy + rGlass + 4} width="68" height="20"
+            style={{overflow:'visible'}}>
+            <div xmlns="http://www.w3.org/1999/xhtml" style={{
+              color: 'var(--glass-label)', fontSize: '10px', lineHeight: 1.2,
+              textAlign: 'right', whiteSpace: 'nowrap',
+            }}>
+              <TeX tex={`${fmt(nGlass,2)}\\,k_0`} />
+            </div>
+          </foreignObject>
+
+          {/* Incident k-vector — drawn in black from origin to its endpoint
+              on the *input* medium's incoming half-circle.                     */}
+          {(() => {
+            const thetaIRad = params.thetaI * PI / 180;
+            const nIn   = inputIsTop ? nAir : nGlass;
+            const kxIn  = nIn * Math.sin(thetaIRad);
+            // Incident propagates TOWARD the interface:
+            //   inputIsTop=true  → comes from above going down → math k_y < 0
+            //   inputIsTop=false → comes from below going up   → math k_y > 0
+            const kyIncMath = (inputIsTop ? -1 : +1) * nIn * Math.cos(thetaIRad);
+            const px = cx + kxIn * scale;
+            const py = cy - kyIncMath * scale;          // svg y = -math y
+            // label position past the tip in propagation direction
+            const ux = Math.sin(thetaIRad);
+            const uy = (inputIsTop ? +1 : -1) * Math.cos(thetaIRad);  // svg-y propagation sign
+            const lx = px + 22 * ux;
+            const ly = py + 22 * uy;
+            return (
+              <g>
+                <line x1={cx} y1={cy} x2={px} y2={py}
+                  stroke="var(--text)" strokeWidth="2.2" markerEnd="url(#k-arrow-inc)" />
+                <circle cx={px} cy={py} r="3.2" fill="var(--text)" />
+                <LabelTeX x={lx} y={ly} tex={"\\mathbf{k}_{\\text{inc}}"}
+                  color="var(--text)" w={70} fontSize={12.5} />
+              </g>
+            );
+          })()}
+
+          {/* orders — propagating in a medium → solid arrow + dot on its half
+              circle.  Evanescent in a medium → marker on the kₓ-axis at
+              k_y = 0 (the real part of the k-vector).  Fully evanescent →
+              single grey marker on the axis.  TIR (propagating in substrate
+              only) → amber arrow on the lower half + a small role-colour
+              dashed marker on the kₓ-axis to mark the air-side evanescence. */}
+          {orders.map(o => {
+            const isTarget  = o.m === mTarget;
+            const isHovered = o.m === hoveredM;
+            const px = cx + o.kxNorm * scale;
+            const op = shadeOpacity(o.m, mMin, mMax) * (hoveredM === null || isHovered ? 1 : 0.55);
+
+            const inAir   = Math.abs(o.kxNorm) <= nAir;
+            const inGlass = Math.abs(o.kxNorm) <= nGlass;
+            const kyAir   = inAir   ? Math.sqrt(nAir*nAir   - o.kxNorm*o.kxNorm) : null;
+            const kyGlass = inGlass ? Math.sqrt(nGlass*nGlass - o.kxNorm*o.kxNorm) : null;
+
+            // Phase-matching line spans only the substrate-circle area + a small margin —
+            // not the full plot height — so they read as quiet reference guides.
+            const stemTop = cy - rGlass - 10;
+            const stemBot = cy + rGlass + 10;
+            const allEvan = !inAir && !inGlass;
+            const stemDash = "2 3";
+            const stemOp  = 0.6 * (hoveredM === null || isHovered ? 1 : 0.35);
+
+            const arrowFor = (col) =>
+              col === TIR_C   ? 'url(#k-arrow-tir)'   :
+              col === 'var(--trans)' ? 'url(#k-arrow-trans)' :
+                                'url(#k-arrow-refl)';
+
+            return (
+              <g key={"k"+o.m}
+                onMouseEnter={() => hoverNoop(o.m)}
+                onMouseLeave={() => hoverNoop(null)}
+                onClick={() => targetNoop(o.m)}
+                style={{cursor: 'pointer'}}>
+
+                {/* invisible wide hit area so hovering/clicking is forgiving */}
+                <rect x={px-12} y={stemTop} width="24" height={Math.max(40, stemBot-stemTop)}
+                  fill="transparent" />
+
+                {/* Phase-matching line for every diffraction order m — vertical
+                    guide at k_{x,m}. Drawn for ALL m so the reciprocal-lattice
+                    ladder is visible (including fully-evanescent ones). */}
+                <line className="order-stem"
+                  x1={px} y1={stemTop} x2={px} y2={stemBot}
+                  stroke={isHovered || isTarget ? "var(--text)" : "var(--pm-line)"}
+                  strokeWidth={isHovered || isTarget ? 1.4 : 1}
+                  strokeDasharray={stemDash}
+                  opacity={isHovered || isTarget ? 1 : stemOp} />
+
+                {/* AIR upper half — propagating? */}
+                {inAir && (() => {
+                  const py  = cy - kyAir*scale;
+                  const col = airColorIfRefl;
+                  return (
+                    <g>
+                      {(isTarget || isHovered) && <line x1={cx} y1={cy} x2={px} y2={py} stroke={col} strokeWidth="7" opacity="0.22" />}
+                      <line className="kvec" x1={cx} y1={cy} x2={px} y2={py}
+                        stroke={col} strokeWidth={isTarget || isHovered ? 2.4 : 1.5}
+                        strokeOpacity={op} markerEnd={arrowFor(col)} />
+                      <circle cx={px} cy={py} r={isTarget ? 4.8 : isHovered ? 4.4 : 3.4}
+                        fill={col} stroke={col} strokeWidth="1" />
+                    </g>
+                  );
+                })()}
+
+                {/* SUBSTRATE lower half — propagating?  Always role colour;
+                    the air-side dashed ring on the kₓ-axis indicates TIR. */}
+                {inGlass && (() => {
+                  const py    = cy + kyGlass*scale;
+                  const col   = glassColorIfRefl;
+                  return (
+                    <g>
+                      {(isTarget || isHovered) && <line x1={cx} y1={cy} x2={px} y2={py} stroke={col} strokeWidth="7" opacity="0.22" />}
+                      <line className="kvec" x1={cx} y1={cy} x2={px} y2={py}
+                        stroke={col} strokeWidth={isTarget || isHovered ? 2.4 : 1.5}
+                        strokeOpacity={op} markerEnd={arrowFor(col)} />
+                      <circle cx={px} cy={py} r={isTarget ? 4.8 : isHovered ? 4.4 : 3.4}
+                        fill={col} stroke={col} strokeWidth="1" />
+                    </g>
+                  );
+                })()}
+
+                {/* Fully evanescent (cannot exist as a propagating mode in
+                    either medium) → small fine-dashed ring on the kₓ-axis. */}
+                {allEvan && (
+                  <circle cx={px} cy={cy} r={isTarget ? 5 : 4}
+                    fill="none" stroke="var(--text)" strokeWidth="1.3"
+                    strokeDasharray="1.5 1.5" strokeOpacity={op * 0.9} />
+                )}
+                {/* TIR case (sub-only propagation): small role-coloured mark
+                    on the kₓ-axis to flag the air-side evanescence. */}
+                {(!inAir && inGlass) && (
+                  <circle cx={px} cy={cy} r={isTarget ? 4 : 3}
+                    fill="none" stroke={airColorIfRefl} strokeWidth="1.2"
+                    strokeDasharray="1.5 2" strokeOpacity={op * 0.7} />
+                )}
+
+                {/* m-label — only rendered for the chosen density, plus
+                    always for {0, target, hovered, m_min, m_max}.       */}
+                {showLabel(o.m) && (
+                  <foreignObject x={px - 30} y={10} width="60" height="22"
+                    style={{overflow:'visible'}}>
+                    <div xmlns="http://www.w3.org/1999/xhtml" style={{
+                      color: (isTarget || isHovered) ? 'var(--text)' : 'var(--text-dim)',
+                      fontSize: '11px',
+                      fontWeight: (isTarget || isHovered) ? 600 : 400,
+                      textAlign: 'center',
+                      lineHeight: 1.2,
+                    }}>
+                      <TeX tex={`m = ${o.m>=0?'+':''}${o.m}`} />
+                    </div>
+                  </foreignObject>
+                )}
+              </g>
+            );
+          })}
+
+          {/* Reciprocal-lattice bracket: visualises the G spacing between
+              adjacent phase-matching lines. Placed above the plot, just
+              below the m-label row, so it never collides with the legend. */}
+          {(() => {
+            const m0 = derived.kxIn0;
+            const m1 = derived.kxIn0 + derived.ratio;
+            const x0 = cx + m0 * scale;
+            const x1 = cx + m1 * scale;
+            const yBr = 40;
+            if (x0 < 14 || x1 > W - 14 || (x1 - x0) < 14) return null;
+            return (
+              <g>
+                <line x1={x0} y1={yBr} x2={x1} y2={yBr}
+                  stroke="var(--text-dim)" strokeWidth="1" />
+                <line x1={x0} y1={yBr-4} x2={x0} y2={yBr+4}
+                  stroke="var(--text-dim)" strokeWidth="1" />
+                <line x1={x1} y1={yBr-4} x2={x1} y2={yBr+4}
+                  stroke="var(--text-dim)" strokeWidth="1" />
+                <foreignObject x={(x0+x1)/2 - 36} y={yBr+4} width="72" height="20"
+                  style={{overflow:'visible'}}>
+                  <div xmlns="http://www.w3.org/1999/xhtml" style={{
+                    color: 'var(--text-dim)', fontSize: '11px', textAlign: 'center',
+                    lineHeight: 1.2, whiteSpace: 'nowrap',
+                  }}>
+                    <TeX tex={"G = 2\\pi/\\Lambda"} />
+                  </div>
+                </foreignObject>
+              </g>
+            );
+          })()}
+
+          {/* legend (bottom-left) */}
+          <g transform={`translate(14 ${H-110})`}>
+            <rect x="0" y="0" width="226" height="98" rx="6" fill="var(--legend-bg)" stroke="var(--border)" />
+            <text x="10" y="14" fontSize="9.5" fill="var(--text-dim)" letterSpacing="0.08em" className="mono">LEGEND</text>
+
+            <line x1="10" y1="26" x2="32" y2="26" stroke="var(--text)" strokeWidth="2.2" markerEnd="url(#k-arrow-inc)" />
+            <text x="40" y="29" fontSize="10.5" fill="var(--text)" className="mono">Incident k</text>
+
+            <line x1="10" y1="40" x2="32" y2="40" stroke={TRANS_C} strokeWidth="2" markerEnd="url(#k-arrow-trans)" />
+            <text x="40" y="43" fontSize="10.5" fill="var(--text)" className="mono">Transmitted</text>
+
+            <line x1="10" y1="54" x2="32" y2="54" stroke={REFL_C} strokeWidth="2" markerEnd="url(#k-arrow-refl)" />
+            <text x="40" y="57" fontSize="10.5" fill="var(--text)" className="mono">Reflected</text>
+
+            <circle cx="21" cy="70" r="4.5" fill="none" stroke="var(--text)" strokeWidth="1.5" strokeDasharray="1.5 1.5" />
+            <text x="40" y="73" fontSize="10.5" fill="var(--text)" className="mono">Evanescent (cannot exist)</text>
+
+            <line x1="10" y1="86" x2="32" y2="86" stroke="var(--pm-line)" strokeWidth="1" strokeDasharray="2 3" />
+            <text x="40" y="89" fontSize="10.5" fill="var(--text)" className="mono">Phase-matching line kₓ,m</text>
+          </g>
+        </svg>
+      );
+    }
+
+    // ─── Buffered numeric input ───────────────────────────────────
+    // We deliberately use type="text" + inputMode="decimal" so:
+    //   • locale-specific comma decimal separators don't fight with the value
+    //   • partially-typed values ("1.", "-", "0.0") aren't clobbered by re-formatting
+    // The committed value is pushed to the parent only on blur or Enter.
+    function NumericInput({ value, onChange, min, max, step, decimals, ariaLabel }) {
+      const dec = decimals !== undefined
+        ? decimals
+        : (String(step).split('.')[1] || '').length;
+      const formatted = Number(value).toFixed(dec);
+      const [editing, setEditing] = useState(false);
+      const [text, setText] = useState(formatted);
+      // Keep the buffered text in sync with the prop when not actively typing.
+      useEffect(() => {
+        if (!editing) setText(formatted);
+      }, [formatted, editing]);
+
+      const commit = () => {
+        // Accept both "." and "," as decimal separators, strip stray spaces.
+        const cleaned = String(text).trim().replace(/\s+/g, '').replace(',', '.');
+        const v = parseFloat(cleaned);
+        setEditing(false);
+        if (!isNaN(v)) {
+          const clamped = Math.max(min, Math.min(max, v));
+          onChange(clamped);
+          setText(Number(clamped).toFixed(dec));
+        } else {
+          setText(formatted);   // restore last good value
+        }
+      };
+
+      return (
+        <input
+          className="value-input"
+          type="text"
+          inputMode="decimal"
+          aria-label={ariaLabel}
+          value={text}
+          onFocus={(e) => { setEditing(true); setText(formatted); e.target.select(); }}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { commit(); e.currentTarget.blur(); }
+            else if (e.key === 'Escape') { setText(formatted); setEditing(false); e.currentTarget.blur(); }
+          }}
+        />
+      );
+    }
+
+    // ─── Slider (with buffered editable input) ─────────────────────
+    function Slider({ label, latex, unit, min, max, step, value, onChange,
+                      inputMin, inputMax, decimals }) {
+      const iMin = inputMin !== undefined ? inputMin : min;
+      const iMax = inputMax !== undefined ? inputMax : max;
+      return (
+        <div className="space-y-1.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="label-cap flex items-center gap-2">
+              <span>{label}</span>
+              {latex && <span className="normal-case tracking-normal" style={{color:'var(--text)'}}><TeX tex={latex} /></span>}
+            </span>
+            <span className="text-sm flex items-baseline gap-1">
+              <NumericInput
+                value={value}
+                onChange={onChange}
+                min={iMin}
+                max={iMax}
+                step={step}
+                decimals={decimals}
+                ariaLabel={label}
+              />
+              {unit && <span className="text-faint">{unit}</span>}
+            </span>
+          </div>
+          <input type="range" min={min} max={max} step={step} value={value}
+            onChange={e => onChange(parseFloat(e.target.value))} />
+        </div>
+      );
+    }
+
+    // ─── Controls ──────────────────────────────────────────────────
+    function Controls({ params, set }) {
+      const { lambda, period, thetaI, side, mMin, mMax, mTarget, nAir, nGlass } = params;
+      const ratio = lambda / period;
+      return (
+        <div className="surface p-5 space-y-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold tracking-wide">Inputs</h3>
+            <span className="chip">live</span>
+          </div>
+
+          <Slider label="Wavelength" latex={"\\lambda"} unit="nm"
+            min={200} max={1500} step={1}
+            inputMin={0.01} inputMax={20000}
+            decimals={3}
+            value={lambda} onChange={v => set('lambda', v)} />
+          <Slider label="Period" latex={"\\Lambda"} unit="nm"
+            min={100} max={3000} step={1}
+            inputMin={0.1} inputMax={50000}
+            decimals={3}
+            value={period} onChange={v => set('period', v)} />
+          <Slider label="Ratio" latex={"\\lambda/\\Lambda"} unit=""
+            min={0.05} max={3.0} step={0.001}
+            inputMin={0.0001} inputMax={50}
+            decimals={4}
+            value={Number(ratio.toFixed(4))}
+            onChange={v => {
+              if (v <= 0) return;
+              const next = Math.max(0.1, Math.min(50000, lambda / v));
+              set('period', next);
+            }} />
+          <Slider label="Incident angle" latex={"\\theta_i"} unit="°"
+            min={-89} max={89} step={0.5}
+            inputMin={-89.9} inputMax={89.9}
+            value={thetaI} onChange={v => set('thetaI', v)} />
+
+          <div>
+            <div className="label-cap mb-2">Incident side</div>
+            <div className="flex gap-2">
+              <button className={`seg ${side==='air-to-glass'?'active':''}`} onClick={() => set('side','air-to-glass')}>
+                air → substrate
+              </button>
+              <button className={`seg ${side==='glass-to-air'?'active':''}`} onClick={() => set('side','glass-to-air')}>
+                substrate → air
+              </button>
+            </div>
+          </div>
+
+          {/* refractive indices — clean two-column layout */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="label-cap mb-1" style={{textTransform:'none'}}>
+                <span style={{color:'var(--text)'}}><TeX tex={"n_{\\text{air}}"} /></span>
+              </div>
+              <NumericInput value={nAir} onChange={v => set('nAir', v)}
+                min={0.5} max={4} step={0.001} decimals={3} ariaLabel="n_air" />
+            </div>
+            <div>
+              <div className="label-cap mb-1" style={{textTransform:'none'}}>
+                <span style={{color:'var(--text)'}}><TeX tex={"n_{\\text{sub}}"} /></span>
+              </div>
+              <NumericInput value={nGlass} onChange={v => set('nGlass', v)}
+                min={0.5} max={5} step={0.001} decimals={3} ariaLabel="n_sub" />
+            </div>
+          </div>
+
+          {/* Reference angles (critical + both Brewster) */}
+          {(() => {
+            const thetaC   = nGlass > nAir ? Math.asin(nAir/nGlass) * DEG : null;
+            const thetaBas = (nAir > 0)   ? Math.atan(nGlass/nAir) * DEG  : null;
+            const thetaBsa = (nGlass > 0) ? Math.atan(nAir/nGlass) * DEG  : null;
+            const sameN    = Math.abs(nAir - nGlass) < 1e-6;
+            const fmtA = (v) => (v === null || sameN) ? <span className="text-faint">—</span>
+                                                      : <span>{fmt(v, 2)}°</span>;
+            return (
+              <div className="ref-card">
+                <div className="label-cap mb-2" style={{textTransform:'uppercase'}}>Reference angles</div>
+                <div className="ref-row">
+                  <span className="flex items-center gap-2">
+                    <TeX tex={"\\theta_c"} />
+                    <span className="text-faint text-[11px]">critical (TIR)</span>
+                  </span>
+                  <span className="mono">{fmtA(thetaC)}</span>
+                </div>
+                <div className="ref-row">
+                  <span className="flex items-center gap-2">
+                    <TeX tex={"\\theta_{B,\\,a\\to s}"} />
+                    <span className="text-faint text-[11px]">Brewster (air → sub)</span>
+                  </span>
+                  <span className="mono">{fmtA(thetaBas)}</span>
+                </div>
+                <div className="ref-row">
+                  <span className="flex items-center gap-2">
+                    <TeX tex={"\\theta_{B,\\,s\\to a}"} />
+                    <span className="text-faint text-[11px]">Brewster (sub → air)</span>
+                  </span>
+                  <span className="mono">{fmtA(thetaBsa)}</span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Order range — m_min and m_max in one row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="label-cap mb-1" style={{textTransform:'none'}}>
+                <span style={{color:'var(--text)'}}><TeX tex={"m_{\\min}"} /></span>
+              </div>
+              <NumericInput value={mMin} onChange={v => set('mMin', Math.round(v))}
+                min={-30} max={0} step={1} decimals={0} ariaLabel="m_min" />
+            </div>
+            <div>
+              <div className="label-cap mb-1" style={{textTransform:'none'}}>
+                <span style={{color:'var(--text)'}}><TeX tex={"m_{\\max}"} /></span>
+              </div>
+              <NumericInput value={mMax} onChange={v => set('mMax', Math.round(v))}
+                min={0} max={30} step={1} decimals={0} ariaLabel="m_max" />
+            </div>
+          </div>
+
+          {/* Target order with step buttons */}
+          <div>
+            <div className="label-cap mb-1 flex items-center justify-between" style={{textTransform:'none'}}>
+              <span style={{color:'var(--text)'}}><TeX tex={"m_{\\text{target}}"} /></span>
+              <span className="text-faint text-[10.5px]" style={{textTransform:'uppercase', letterSpacing:'0.08em'}}>
+                step through orders
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="step-btn"
+                disabled={mTarget <= Math.min(mMin, mMax)}
+                onClick={() => set('mTarget', Math.max(Math.min(mMin, mMax), mTarget - 1))}
+                aria-label="Decrease target order">−</button>
+              <div className="flex-1 flex justify-center">
+                <NumericInput value={mTarget} onChange={v => set('mTarget', Math.round(v))}
+                  min={Math.min(mMin, mMax)} max={Math.max(mMin, mMax)} step={1} decimals={0}
+                  ariaLabel="m_target" />
+              </div>
+              <button className="step-btn"
+                disabled={mTarget >= Math.max(mMin, mMax)}
+                onClick={() => set('mTarget', Math.min(Math.max(mMin, mMax), mTarget + 1))}
+                aria-label="Increase target order">+</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Formulas panel ────────────────────────────────────────────
+    function FormulasPanel({ derived }) {
+      const { thetaC } = derived;
+      return (
+        <div className="surface p-5 space-y-3">
+          <h3 className="text-sm font-semibold tracking-wide">Reciprocal-space formulation</h3>
+
+          {/* Primary: reciprocal-lattice translation */}
+          <div className="eq-block" style={{paddingTop: 2}}>
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-faint mb-1">
+              diffraction = momentum translation
+            </div>
+            <TeX block tex={"k_{x,m} \\;=\\; k_{x,\\text{inc}} \\;+\\; m\\,G"} />
+          </div>
+
+          {/* Definitions */}
+          <div className="eq-block">
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-faint mb-1">where</div>
+            <div className="space-y-1.5 pl-1">
+              <TeX block tex={"k_{x,\\text{inc}} \\;=\\; n_{\\text{in}}\\, k_0\\, \\sin\\theta_i"} />
+              <TeX block tex={"G \\;=\\; \\dfrac{2\\pi}{\\Lambda} \\quad\\text{(reciprocal lattice vector)}"} />
+              <TeX block tex={"k_0 \\;=\\; \\dfrac{2\\pi}{\\lambda}"} />
+            </div>
+          </div>
+
+          {/* Mode classification */}
+          <div className="eq-block">
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-faint mb-1">mode classification</div>
+            <div className="space-y-1.5 pl-1">
+              <TeX block tex={"|k_{x,m}| \\le n_{\\text{out}}\\,k_0 \\;\\;\\Rightarrow\\;\\; \\text{propagating}"} />
+              <TeX block tex={"\\theta_m \\;=\\; \\arcsin\\!\\bigl(k_{x,m}/(n_{\\text{out}}\\,k_0)\\bigr)"} />
+              <TeX block tex={`\\theta_c \\;=\\; \\arcsin(n_{\\text{air}}/n_{\\text{sub}}) \\;=\\; ${fmt(thetaC*DEG,2)}^{\\circ}`} />
+            </div>
+          </div>
+
+          {/* Normalised form (secondary) */}
+          <div className="eq-block">
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-faint mb-1">normalised by k₀</div>
+            <TeX block tex={"\\dfrac{k_{x,m}}{k_0} \\;=\\; n_{\\text{in}}\\sin\\theta_i \\;+\\; m\\,\\dfrac{\\lambda}{\\Lambda}"} />
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Live k-space readout ──────────────────────────────────────
+    function KReadout({ derived, params }) {
+      const { sideSign, kxIn0, ratio, orders, nIn, nOut, thetaC } = derived;
+      const { lambda, mTarget, nAir, nGlass } = params;
+      const k0 = (2 * PI) / lambda;          // 1/nm — absolute
+      const G  = (2 * PI) / params.period;   // 1/nm — absolute
+
+      const tgt = orders.find(o => o.m === mTarget);
+      const kxNorm = tgt ? tgt.kxNorm : null;
+      const inAir   = tgt ? Math.abs(tgt.kxNorm) <= nAir   : false;
+      const inSub   = tgt ? Math.abs(tgt.kxNorm) <= nGlass : false;
+      const isTIR   = tgt && (Math.abs(tgt.kxNorm) > nAir) && (Math.abs(tgt.kxNorm) <= nGlass);
+      const kyAir   = inAir ? Math.sqrt(nAir*nAir   - tgt.kxNorm*tgt.kxNorm) : null;
+      const kyGlass = inSub ? Math.sqrt(nGlass*nGlass - tgt.kxNorm*tgt.kxNorm) : null;
+
+      // Medium-keyed angles: θ_air, θ_sub — angle the wave makes with the
+      // normal IN each medium, regardless of whether it's transmitted or
+      // reflected (which depends on the incident side).
+      const thetaAirDeg = inAir ? Math.asin(Math.max(-1, Math.min(1, tgt.kxNorm / nAir))) * DEG : null;
+      const thetaSubDeg = inSub ? Math.asin(Math.max(-1, Math.min(1, tgt.kxNorm / nGlass))) * DEG : null;
+      const inputIsTop = sideSign === +1;
+
+      // mode classification
+      let modes = [];
+      if (tgt) {
+        if (inAir)   modes.push({ label: 'propagating in air',     color: 'var(--accent)' });
+        if (inSub && !isTIR) modes.push({ label: 'propagating in substrate', color: 'var(--accent-2)' });
+        if (isTIR)   modes.push({ label: 'TIR-guided in substrate', color: 'var(--warn)' });
+        if (!inAir && !inSub) modes.push({ label: 'fully evanescent', color: 'var(--text-faint)' });
+      }
+
+      // YES / NO pill helper
+      const yesNo = (ok) => (
+        <span className="chip" style={{
+          padding: '1px 8px',
+          color: ok ? 'var(--good)' : 'var(--bad)',
+          borderColor: `color-mix(in srgb, ${ok ? 'var(--good)' : 'var(--bad)'} 30%, transparent)`,
+          background: `color-mix(in srgb, ${ok ? 'var(--good)' : 'var(--bad)'} 12%, transparent)`,
+        }}>{ok ? 'YES' : 'NO'}</span>
+      );
+
+      return (
+        <div className="surface p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold tracking-wide">k-space readout</h3>
+            <span className="chip">live</span>
+          </div>
+
+          {/* Global lattice — dimensional and normalised forms split. */}
+          <div>
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-faint mb-2">
+              global lattice
+            </div>
+            <div className="grid grid-cols-[auto_1fr] gap-y-1.5 gap-x-3 text-[12.5px] items-center">
+              <span className="text-dim"><TeX tex={"k_0 = 2\\pi/\\lambda"} /></span>
+              <span className="mono">{fmt(k0, 5)} <span className="text-faint">nm⁻¹</span></span>
+
+              <span className="text-dim"><TeX tex={"G = 2\\pi/\\Lambda"} /></span>
+              <span className="mono">{fmt(G, 5)} <span className="text-faint">nm⁻¹</span></span>
+
+              <span className="text-dim"><TeX tex={"G/k_0 = \\lambda/\\Lambda"} /></span>
+              <span className="mono">{fmt(ratio, 4)}</span>
+
+              <span className="text-dim"><TeX tex={"k_{x,\\text{inc}}/k_0"} /></span>
+              <span className="mono">{fmt(kxIn0, 4)}</span>
+
+              <span className="text-dim"><TeX tex={"n_{\\text{in}} \\to n_{\\text{out}}"} /></span>
+              <span className="mono">{fmt(nIn,3)} → {fmt(nOut,3)}</span>
+
+              <span className="text-dim"><TeX tex={"|\\mathbf{k}|_{\\text{air}}/k_0"} /></span>
+              <span className="mono">{fmt(nAir, 3)}</span>
+
+              <span className="text-dim"><TeX tex={"|\\mathbf{k}|_{\\text{sub}}/k_0"} /></span>
+              <span className="mono">{fmt(nGlass, 3)}</span>
+            </div>
+          </div>
+
+          {/* Target order — normalised k components and per-medium angles. */}
+          <div className="border-t hairline pt-3">
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-faint mb-2 flex items-baseline gap-2">
+              <span>target order</span>
+              <span className="mono" style={{textTransform:'none', color:'var(--text)'}}>
+                <TeX tex={`m = ${mTarget>=0?'+':''}${mTarget}`} />
+              </span>
+            </div>
+            {tgt ? (
+              <div className="grid grid-cols-[auto_1fr] gap-y-1.5 gap-x-3 text-[12.5px] items-center">
+                <span className="text-dim"><TeX tex={"k_{x,m}/k_0"} /></span>
+                <span className="mono">{fmt(kxNorm, 4)}</span>
+
+                <span className="text-dim"><TeX tex={"k_{y,\\text{air}}/k_0"} /></span>
+                <span className="mono">{kyAir===null
+                  ? <span className="text-faint">imag.</span>
+                  : fmt(kyAir, 4)}</span>
+
+                <span className="text-dim"><TeX tex={"k_{y,\\text{sub}}/k_0"} /></span>
+                <span className="mono">{kyGlass===null
+                  ? <span className="text-faint">imag.</span>
+                  : fmt(kyGlass, 4)}</span>
+
+                <span className="text-dim"><TeX tex={"\\theta_{\\text{air}}"} /></span>
+                <span className="mono">{thetaAirDeg===null
+                  ? <span className="text-faint">— evanescent</span>
+                  : fmt(thetaAirDeg, 2)+'°'}</span>
+
+                <span className="text-dim"><TeX tex={"\\theta_{\\text{sub}}"} /></span>
+                <span className="mono">{thetaSubDeg===null
+                  ? <span className="text-faint">— evanescent</span>
+                  : fmt(thetaSubDeg, 2)+'°'}</span>
+              </div>
+            ) : <div className="text-faint mono text-[12px]">order out of range</div>}
+          </div>
+
+          {/* Propagation-condition test per medium */}
+          {tgt && (
+            <div className="border-t hairline pt-3">
+              <div className="text-[10.5px] uppercase tracking-[0.08em] text-faint mb-2">
+                propagation condition&nbsp;
+                <span style={{textTransform:'none', color:'var(--text-dim)'}}>
+                  <TeX tex={"|k_{x,m}| \\le n\\,k_0"} />
+                </span>
+              </div>
+              <div className="grid grid-cols-[1fr_auto_auto] gap-y-1.5 gap-x-3 text-[12.5px] items-center">
+                <span className="text-dim">air</span>
+                <span className="mono text-[11.5px] text-faint">
+                  {fmt(Math.abs(kxNorm), 3)} {inAir ? '≤' : '>'} {fmt(nAir, 3)}
+                </span>
+                {yesNo(inAir)}
+
+                <span className="text-dim">substrate</span>
+                <span className="mono text-[11.5px] text-faint">
+                  {fmt(Math.abs(kxNorm), 3)} {inSub ? '≤' : '>'} {fmt(nGlass, 3)}
+                </span>
+                {yesNo(inSub)}
+              </div>
+            </div>
+          )}
+
+          {/* Mode classification chips */}
+          <div className="border-t hairline pt-3">
+            <div className="text-[10.5px] uppercase tracking-[0.08em] text-faint mb-2">
+              mode classification
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {modes.length === 0 && <span className="chip">—</span>}
+              {modes.map((m, i) => (
+                <span key={i} className="chip" style={{
+                  color: m.color,
+                  borderColor: `color-mix(in srgb, ${m.color} 35%, transparent)`,
+                  background: `color-mix(in srgb, ${m.color} 12%, transparent)`,
+                }}>{m.label}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Order table ───────────────────────────────────────────────
+    function OrdersTable({ derived, params, hoveredM, onHover, onSelectTarget }) {
+      const { sideSign, orders, thetaC } = derived;
+      const { mTarget } = params;
+      const inputIsTop = sideSign === +1;
+      const hoverNoop  = onHover || (() => {});
+      const targetNoop = onSelectTarget || (() => {});
+
+      return (
+        <div className="surface overflow-hidden">
+          <div className="px-5 py-3 flex items-center justify-between border-b hairline">
+            <h3 className="text-sm font-semibold tracking-wide">Orders</h3>
+            <span className="text-faint text-[11px] mono">
+              transmitted into {inputIsTop ? 'substrate' : 'air'} · reflected into {inputIsTop ? 'air' : 'substrate'}
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px] mono">
+              <thead className="text-dim text-[10.5px] uppercase tracking-wider">
+                <tr>
+                  <th className="text-left  px-4 py-2">m</th>
+                  <th className="text-right px-3 py-2">kₓ/k₀</th>
+                  <th className="text-right px-3 py-2">θ<sub>t</sub></th>
+                  <th className="text-right px-3 py-2">θ<sub>r</sub></th>
+                  <th className="text-left  px-3 py-2">trans</th>
+                  <th className="text-left  px-3 py-2">refl</th>
+                  <th className="text-left  px-4 py-2">TIR</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map(o => {
+                  const isTarget  = o.m === mTarget;
+                  const isHovered = o.m === hoveredM;
+                  const tirT = inputIsTop  && o.thetaT !== null && Math.abs(o.thetaT) > thetaC;
+                  const tirR = !inputIsTop && o.thetaR !== null && Math.abs(o.thetaR) > thetaC;
+                  const tir  = tirT || tirR;
+                  return (
+                    <tr key={o.m}
+                      className={`table-row border-t hairline ${isTarget ? 'row-target' : ''}`}
+                      style={{
+                        background: isHovered ? 'var(--hover-bg)' : undefined,
+                        outline: isHovered ? '1px solid var(--border-strong)' : undefined,
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={() => hoverNoop(o.m)}
+                      onMouseLeave={() => hoverNoop(null)}
+                      onClick={() => targetNoop(o.m)}>
+                      <td className="px-4 py-2">
+                        <span className="inline-flex items-center gap-2">
+                          <span className="swatch" style={{background: o.thetaT!==null ? 'var(--trans)' : 'transparent', borderRadius:'2px', width:6, height:10}} />
+                          <span className="swatch" style={{background: o.thetaR!==null ? 'var(--refl)'  : 'transparent', borderRadius:'2px', width:6, height:10}} />
+                          <span style={{color: isTarget ? 'var(--text)' : 'var(--text)', fontWeight: isTarget ? 600 : 400, marginLeft: 4}}>
+                            {o.m>=0?'+':''}{o.m}
+                          </span>
+                          {isTarget && <span className="chip" style={{padding:'1px 6px'}}>target</span>}
+                        </span>
+                      </td>
+                      <td className="text-right px-3 py-2">{fmt(o.kxNorm, 4)}</td>
+                      <td className="text-right px-3 py-2">{o.thetaT===null ? '—' : fmt(o.thetaT*DEG, 2)+'°'}</td>
+                      <td className="text-right px-3 py-2">{o.thetaR===null ? '—' : fmt(o.thetaR*DEG, 2)+'°'}</td>
+                      <td className="px-3 py-2">
+                        <span className={`chip ${o.propOut?'on':'off'}`}>{o.propOut?'open':'evan'}</span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className={`chip ${o.propIn?'refl':'off'}`}>{o.propIn?'open':'evan'}</span>
+                      </td>
+                      <td className="px-4 py-2">
+                        {tir ? <span className="chip tir">TIR-guided</span> : <span className="text-faint">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Top-level App ─────────────────────────────────────────────
+    function App() {
+      const [lambda, setLambda]   = useState(633);
+      const [period, setPeriod]   = useState(643);
+      const [thetaI, setThetaI]   = useState(0);
+      const [side, setSide]       = useState('air-to-glass');
+      const [mMin, setMMin]       = useState(-3);
+      const [mMax, setMMax]       = useState(3);
+      const [mTarget, setMTarget] = useState(0);
+      const [nAir, setNAir]       = useState(1.0);
+      const [nGlass, setNGlass]   = useState(1.47);
+      // hoveredM: order being hovered in any panel (table / real-space / k-space).
+      const [hoveredM, setHoveredM] = useState(null);
+      // k-space zoom override: null = auto-fit. Number = manual half-width in k₀ units.
+      const [kZoom, setKZoom] = useState(null);
+      const [theme, setTheme] = useState(() => {
+        try {
+          const saved = localStorage.getItem('gcv-theme');
+          if (saved === 'light' || saved === 'dark') return saved;
+        } catch(e) {}
+        return (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+      });
+      useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+        try { localStorage.setItem('gcv-theme', theme); } catch(e) {}
+      }, [theme]);
+
+      // Keep m_target inside [m_min, m_max] when the bounds change.
+      useEffect(() => {
+        const lo = Math.min(mMin, mMax);
+        const hi = Math.max(mMin, mMax);
+        if (mTarget < lo) setMTarget(lo);
+        else if (mTarget > hi) setMTarget(hi);
+      }, [mMin, mMax]); // eslint-disable-line
+
+      const params = { lambda, period, thetaI, side, mMin, mMax, mTarget, nAir, nGlass };
+
+      const set = (k, v) => {
+        const map = { lambda:setLambda, period:setPeriod, thetaI:setThetaI, side:setSide,
+          mMin:setMMin, mMax:setMMax, mTarget:setMTarget, nAir:setNAir, nGlass:setNGlass };
+        map[k](v);
+      };
+
+      const derived = useMemo(() => {
+        const sideSign = side === 'air-to-glass' ? +1 : -1;
+        const nIn = sideSign === +1 ? nAir : nGlass;
+        const nOut = sideSign === +1 ? nGlass : nAir;
+        const thetaIRad = thetaI * PI / 180;
+        const ratio = lambda / period;
+        const kxIn0 = nIn * Math.sin(thetaIRad);
+        const orders = [];
+        const lo = Math.min(mMin, mMax);
+        const hi = Math.max(mMin, mMax);
+        for (let m = lo; m <= hi; m++) {
+          const kxNorm = kxIn0 + m * ratio;
+          const propIn  = Math.abs(kxNorm) <= nIn;
+          const propOut = Math.abs(kxNorm) <= nOut;
+          const thetaR = propIn  ? Math.asin(Math.max(-1, Math.min(1, kxNorm / nIn)))  : null;
+          const thetaT = propOut ? Math.asin(Math.max(-1, Math.min(1, kxNorm / nOut))) : null;
+          const tirGuided = Math.abs(kxNorm) > nAir && Math.abs(kxNorm) <= nGlass;
+          orders.push({ m, kxNorm, propIn, propOut, thetaR, thetaT, tirGuided });
+        }
+        const thetaC = Math.asin(nAir / nGlass);
+        return { sideSign, nIn, nOut, ratio, kxIn0, orders, thetaC };
+      }, [lambda, period, thetaI, side, mMin, mMax, nAir, nGlass]);
+
+      const nOpenT = derived.orders.filter(o => o.thetaT !== null).length;
+      const nOpenR = derived.orders.filter(o => o.thetaR !== null).length;
+      const nTIR   = derived.orders.filter(o => o.tirGuided).length;
+
+      return (
+        <div className="min-h-screen px-6 md:px-10 py-8">
+          <div className="max-w-[1500px] mx-auto">
+            <div className="flex items-start justify-between flex-wrap gap-4 mb-2">
+              <div>
+                <div className="text-[11px] mono tracking-[0.2em] text-faint mb-2">DIFFRACTION · GRATING EQUATION</div>
+                <h1 className="text-[26px] md:text-[30px] font-semibold tracking-tight leading-tight">
+                  Grating Channel Visualizer
+                </h1>
+                <p className="text-dim text-[14px] mt-2 max-w-[780px]">
+                  Real-space rays + 2-D k-space Ewald-circle view of diffraction orders at an
+                  air / substrate grating interface.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <span className="chip"><TeX tex={"\\lambda"} />&nbsp;{lambda} nm</span>
+                <span className="chip"><TeX tex={"\\Lambda"} />&nbsp;{period} nm</span>
+                <span className="chip"><TeX tex={"\\lambda/\\Lambda"} />&nbsp;{fmt(derived.ratio, 3)}</span>
+                <span className="chip on">{nOpenT} trans</span>
+                <span className="chip refl">{nOpenR} refl</span>
+                {nTIR>0 && <span className="chip tir">{nTIR} TIR</span>}
+                <button className="theme-toggle"
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} aria-label="Toggle theme">
+                  {theme === 'dark' ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="4" />
+                      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-12 gap-5 mt-6">
+              <div className="col-span-12 xl:col-span-8 space-y-5">
+                <div className="surface p-5">
+                  <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+                    <h3 className="text-sm font-semibold tracking-wide">Real space — interface</h3>
+                    <span className="text-faint text-[11px]">
+                      <TeX tex={`\\theta_c = ${fmt(derived.thetaC*DEG, 2)}^{\\circ}`} />
+                    </span>
+                  </div>
+                  <div className="klabel-row">
+                    <span className="klabel">
+                      <span className="marker" style={{borderColor:'var(--trans)', width:18}}></span>
+                      <span className="mono text-[11px] text-dim">transmitted</span>
+                    </span>
+                    <span className="klabel">
+                      <span className="marker" style={{borderColor:'var(--refl)', width:18}}></span>
+                      <span className="mono text-[11px] text-dim">reflected</span>
+                    </span>
+                  </div>
+                  <RealSpaceView params={params} derived={derived}
+                    hoveredM={hoveredM} onHover={setHoveredM}
+                    onSelectTarget={(m) => set('mTarget', m)} />
+                </div>
+
+                <div className="surface p-5">
+                  <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+                    <h3 className="text-sm font-semibold tracking-wide">k-space — 2D Ewald construction</h3>
+                    <span className="text-faint text-[11px]">
+                      vertical line = phase-matched <TeX tex={"k_x"} /> &nbsp;·&nbsp;
+                      ∩ circle = full <TeX tex={"\\mathbf{k} = (k_x, k_y)"} />
+                    </span>
+                  </div>
+                  <div className="klabel-row">
+                    <span className="klabel">
+                      <span className="marker" style={{borderColor:'var(--accent)', width:18}}></span>
+                      <TeX tex={`|\\mathbf{k}| = n_{\\text{air}}\\,k_0 = ${fmt(params.nAir, 3)}\\,k_0`} />
+                    </span>
+                    <span className="klabel">
+                      <span className="marker" style={{borderColor:'var(--accent-2)', width:18}}></span>
+                      <TeX tex={`|\\mathbf{k}| = n_{\\text{sub}}\\,k_0 = ${fmt(params.nGlass, 3)}\\,k_0`} />
+                    </span>
+                    {(() => {
+                      const inputIsTop = derived.sideSign === +1;
+                      const upper = inputIsTop ? 'reflected' : 'transmitted';
+                      const lower = inputIsTop ? 'transmitted' : 'reflected';
+                      const upperC = upper === 'transmitted' ? 'var(--trans)' : 'var(--refl)';
+                      const lowerC = lower === 'transmitted' ? 'var(--trans)' : 'var(--refl)';
+                      return (
+                        <Fragment>
+                          <span className="klabel">
+                            <span className="text-faint mono text-[11px]">upper</span>
+                            <span className="mono text-[11px]" style={{color: upperC}}>{upper}</span>
+                          </span>
+                          <span className="klabel">
+                            <span className="text-faint mono text-[11px]">lower</span>
+                            <span className="mono text-[11px]" style={{color: lowerC}}>{lower}</span>
+                          </span>
+                        </Fragment>
+                      );
+                    })()}
+                    <span className="klabel" style={{background:'transparent'}}>
+                      <span className="text-faint mono text-[11px]">order range</span>
+                      <TeX tex={`m \\in [${params.mMin}, ${params.mMax}]`} />
+                    </span>
+                  </div>
+                  {(() => {
+                    // Compute the auto half-width so the slider can default to it.
+                    const maxKx = derived.orders.reduce((a, o) => Math.max(a, Math.abs(o.kxNorm)), 0);
+                    const autoHW = Math.max(maxKx * 1.08, nGlass * 1.15);
+                    const currentHW = kZoom !== null ? kZoom : autoHW;
+                    return (
+                      <div className="flex items-center gap-3 mb-3 flex-wrap">
+                        <span className="label-cap" style={{textTransform:'uppercase'}}>
+                          k-space view
+                        </span>
+                        <input type="range" min="1.2" max="8" step="0.1"
+                          value={currentHW.toFixed(2)}
+                          onChange={e => setKZoom(parseFloat(e.target.value))}
+                          style={{flex: 1, minWidth: 120, maxWidth: 220}} />
+                        <span className="mono text-[12px]">±{currentHW.toFixed(2)} <span className="text-faint">k₀</span></span>
+                        <button className="seg" style={{padding:'4px 10px'}}
+                          onClick={() => setKZoom(null)}>
+                          {kZoom === null ? 'auto' : 'reset to auto'}
+                        </button>
+                      </div>
+                    );
+                  })()}
+                  <KSpaceView params={params} derived={derived}
+                    hoveredM={hoveredM} onHover={setHoveredM}
+                    onSelectTarget={(m) => set('mTarget', m)}
+                    zoomOverride={kZoom} />
+                </div>
+
+                <OrdersTable derived={derived} params={params}
+                  hoveredM={hoveredM} onHover={setHoveredM}
+                  onSelectTarget={(m) => set('mTarget', m)} />
+              </div>
+
+              <div className="col-span-12 xl:col-span-4 space-y-5">
+                <Controls params={params} set={set} />
+                <KReadout derived={derived} params={params} />
+                <FormulasPanel derived={derived} />
+
+                <div className="surface p-5">
+                  <div className="text-[11px] mono tracking-[0.18em] text-faint mb-2">KEY IDEA</div>
+                  <p className="text-[14.5px] leading-relaxed">
+                    <span style={{color:'var(--text)', fontWeight:500}}>Grating equation</span> decides which
+                    channels exist. <span style={{color:'var(--text)', fontWeight:500}}>Metasurface design</span>
+                    {' '}decides how much power goes into each open channel.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <footer className="text-faint text-[12px] mt-10 mb-4 flex flex-wrap gap-x-7 gap-y-2 items-center">
+              <TeX tex={"k_0 = \\dfrac{2\\pi}{\\lambda}"} />
+              <TeX tex={"G = \\dfrac{2\\pi}{\\Lambda}"} />
+              <TeX tex={"n_{\\text{in}}\\sin\\theta_i = \\dfrac{k_{x,m}}{k_0} - m\\,\\dfrac{\\lambda}{\\Lambda}"} />
+            </footer>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
