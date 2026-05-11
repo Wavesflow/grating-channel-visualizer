@@ -259,7 +259,7 @@
           if (window.katex) {
             try {
               window.katex.render(tex, ref.current, { displayMode: block, throwOnError: false, output: 'html' });
-            } catch(e) { ref.current.textContent = tex; }
+            } catch(e) { console.warn('KaTeX render failed:', e); if (ref.current) ref.current.textContent = '…'; }
           } else { setTimeout(render, 60); }
         };
         render();
@@ -1501,7 +1501,8 @@
         const hi = Math.max(mMin, mMax);
         if (mTarget < lo) setMTarget(lo);
         else if (mTarget > hi) setMTarget(hi);
-      }, [mMin, mMax]); // eslint-disable-line
+        // Re-clamp only when bounds change, not when mTarget itself changes.
+      }, [mMin, mMax]); // eslint-disable-next-line react-hooks/exhaustive-deps
 
       const params = { lambda, period, thetaI, side, mMin, mMax, mTarget, nAir, nGlass };
 
